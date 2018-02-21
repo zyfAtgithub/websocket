@@ -25,11 +25,11 @@ public class HandShake implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse serverHttpResponse,
                                    WebSocketHandler webSocketHandler, Map<String, Object> attributes) throws Exception {
-        String jspCode = ((ServletServerHttpRequest) request).getServletRequest().getParameter("jspCode");
+        String userCode = ((ServletServerHttpRequest) request).getServletRequest().getParameter("userCode");
         // 标记用户
         //String userId = (String) session.getAttribute("userId");
-        if(jspCode!=null){
-            attributes.put("jspCode", jspCode);
+        if(userCode!=null){
+            attributes.put("userCode", userCode);
         }else{
             return false;
         }

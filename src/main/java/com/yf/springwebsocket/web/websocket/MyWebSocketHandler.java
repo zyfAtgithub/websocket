@@ -3,7 +3,9 @@ package com.yf.springwebsocket.web.websocket;
 
 import com.google.gson.GsonBuilder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
@@ -30,12 +32,12 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
      */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String jspCode = (String) session.getHandshakeAttributes().get("jspCode");
-        if (userSocketSessionMap.get(jspCode) == null) {
-            userSocketSessionMap.put(jspCode, session);
+        String userCode = (String) session.getHandshakeAttributes().get("userCode");
+        if (userSocketSessionMap.get(userCode) == null) {
+            userSocketSessionMap.put(userCode, session);
         }
         //broadcast(new TextMessage(new GsonBuilder().create().toJson("\"number\":\""+i+"\"")));
-        session.sendMessage(new TextMessage(new GsonBuilder().create().toJson("server==>连接已建立！")));
+        session.sendMessage(new TextMessage(new GsonBuilder().disableHtmlEscaping().create().toJson("server==>连接已建立！用户【"+userCode+"】已登录！sessionid="+session.getId())));
     }
 
     /**
@@ -63,17 +65,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         if (session.isOpen()) {
             session.close();
         }
-        Iterator<Map.Entry<String, WebSocketSession>> it = userSocketSessionMap
-                .entrySet().iterator();
-        // 移除Socket会话
-        while (it.hasNext()) {
-            Map.Entry<String, WebSocketSession> entry = it.next();
-            if (entry.getValue().getId().equals(session.getId())) {
-                userSocketSessionMap.remove(entry.getKey());
-                System.out.println("Socket会话已经移除:用户ID" + entry.getKey());
-                break;
-            }
-        }
+        removeSocketSession(session);
     }
 
     /**
@@ -85,6 +77,15 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
         System.out.println("Websocket:" + session.getId() + "已经关闭");
+        removeSocketSession(session);
+    }
+
+    /**
+     * 移除Socket会话
+     *
+     * @param session
+     */
+    private void removeSocketSession(WebSocketSession session) {
         Iterator<Map.Entry<String, WebSocketSession>> it = userSocketSessionMap
                 .entrySet().iterator();
         // 移除Socket会话
@@ -115,19 +116,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
             final Map.Entry<String, WebSocketSession> entry = it.next();
 
             if (entry.getValue().isOpen()) {
-                new Thread(new Runnable() {
-
-                    public void run() {
-                        try {
-                            if (entry.getValue().isOpen()) {
-                                entry.getValue().sendMessage(message);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                }).start();
+                threadSendMessage(message, entry);
             }
 
         }
@@ -147,19 +136,23 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         while (it.hasNext()) {
             final Map.Entry<String, WebSocketSession> entry = it.next();
             if (entry.getValue().isOpen() && entry.getKey().contains(type)) {
-                new Thread(new Runnable() {
-                    public void run() {
-                        try {
-                            if (entry.getValue().isOpen()) {
-                                entry.getValue().sendMessage(message);
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).start();
+                threadSendMessage(message, entry);
             }
 
         }
+    }
+
+    private void threadSendMessage(final TextMessage message, final Map.Entry<String, WebSocketSession> entry) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    if (entry.getValue().isOpen()) {
+                        entry.getValue().sendMessage(message);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 }
