@@ -4,6 +4,7 @@ package com.yf.springwebsocket.web.websocket;
 import com.google.gson.GsonBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -11,7 +12,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 @Component
-public class MyWebSocketHandler implements WebSocketHandler {
+public class MyWebSocketHandler extends TextWebSocketHandler {
 
     /**
      * 存放所有的连接
@@ -33,10 +34,8 @@ public class MyWebSocketHandler implements WebSocketHandler {
         if (userSocketSessionMap.get(jspCode) == null) {
             userSocketSessionMap.put(jspCode, session);
         }
-        for(int i=0;i<10;i++){
-            //broadcast(new TextMessage(new GsonBuilder().create().toJson("\"number\":\""+i+"\"")));
-            session.sendMessage(new TextMessage(new GsonBuilder().create().toJson("\"number\":\""+i+"\"")));
-        }
+        //broadcast(new TextMessage(new GsonBuilder().create().toJson("\"number\":\""+i+"\"")));
+        session.sendMessage(new TextMessage(new GsonBuilder().create().toJson("server==>连接已建立！")));
     }
 
     /**
@@ -46,9 +45,10 @@ public class MyWebSocketHandler implements WebSocketHandler {
      * @throws Exception
      */
     @Override
-    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         //发送消息
-        session.sendMessage(message);
+        TextMessage retMsg = new TextMessage("server==>我收到了"+message.getPayload());
+        session.sendMessage(retMsg);
     }
 
 
